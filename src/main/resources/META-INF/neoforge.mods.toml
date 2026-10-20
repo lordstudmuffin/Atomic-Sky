@@ -1,0 +1,38 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+
+[[mods]]
+modId="atomicsky"
+version="${mod_version}"
+displayName="Atomic Sky"
+authors="Kyle"
+description='''
+A nuke that changes the weather. Built on ProtoManly's Weather: the blast flashes and bakes the land, starts the weather mod's wildfires,
+sends a shockwave through its wind engine, drops drifting fallout under ash-dark skies, and can bring on a nuclear winter on its calendar.
+'''
+
+[[mixins]]
+config="atomicsky.mixins.json"
+
+[[dependencies.atomicsky]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21.1.0,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.atomicsky]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21.1,1.21.2)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.atomicsky]]
+    modId="pmweather"
+    type="required"
+    reason="Atomic Sky drives ProtoManly's Weather: its wind, wildfire, soil moisture, calendar and smoke systems."
+    versionRange="[0.17,)"
+    ordering="AFTER"
+    side="BOTH"

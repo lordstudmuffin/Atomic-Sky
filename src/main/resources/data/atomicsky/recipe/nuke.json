@@ -1,0 +1,29 @@
+{
+ "neoforge:conditions": [
+  {
+   "type": "atomicsky:craftable"
+  }
+ ],
+ "type": "minecraft:crafting_shaped",
+ "category": "redstone",
+ "pattern": [
+  "TIT",
+  "ICI",
+  "TIT"
+ ],
+ "key": {
+  "T": {
+   "item": "minecraft:tnt"
+  },
+  "I": {
+   "item": "minecraft:iron_block"
+  },
+  "C": {
+   "item": "atomicsky:fissile_core"
+  }
+ },
+ "result": {
+  "id": "atomicsky:nuke",
+  "count": 1
+ }
+}

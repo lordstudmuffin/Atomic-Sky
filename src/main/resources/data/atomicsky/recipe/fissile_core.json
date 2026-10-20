@@ -1,0 +1,29 @@
+{
+ "neoforge:conditions": [
+  {
+   "type": "atomicsky:craftable"
+  }
+ ],
+ "type": "minecraft:crafting_shaped",
+ "category": "misc",
+ "pattern": [
+  "GRG",
+  "RNR",
+  "GRG"
+ ],
+ "key": {
+  "G": {
+   "item": "minecraft:glowstone"
+  },
+  "R": {
+   "item": "minecraft:redstone_block"
+  },
+  "N": {
+   "item": "minecraft:netherite_ingot"
+  }
+ },
+ "result": {
+  "id": "atomicsky:fissile_core",
+  "count": 1
+ }
+}

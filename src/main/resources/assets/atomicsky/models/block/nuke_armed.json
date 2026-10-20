@@ -1,0 +1,1 @@
+{"parent": "minecraft:block/orientable_with_bottom", "textures": {"top": "atomicsky:block/nuke_top", "bottom": "atomicsky:block/nuke_bottom", "side": "atomicsky:block/nuke_side_armed", "front": "atomicsky:block/nuke_front_armed"}}

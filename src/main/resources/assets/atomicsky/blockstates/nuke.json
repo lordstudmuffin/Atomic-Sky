@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "armed=false,facing=north": { "model": "atomicsky:block/nuke" },
+    "armed=false,facing=east": { "model": "atomicsky:block/nuke", "y": 90 },
+    "armed=false,facing=south": { "model": "atomicsky:block/nuke", "y": 180 },
+    "armed=false,facing=west": { "model": "atomicsky:block/nuke", "y": 270 },
+    "armed=true,facing=north": { "model": "atomicsky:block/nuke_armed" },
+    "armed=true,facing=east": { "model": "atomicsky:block/nuke_armed", "y": 90 },
+    "armed=true,facing=south": { "model": "atomicsky:block/nuke_armed", "y": 180 },
+    "armed=true,facing=west": { "model": "atomicsky:block/nuke_armed", "y": 270 }
+  }
+}

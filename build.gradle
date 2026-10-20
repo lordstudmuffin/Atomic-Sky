@@ -1,0 +1,62 @@
+plugins {
+    id 'java-library'
+    id 'idea'
+    id 'net.neoforged.moddev' version '2.0.78'
+}
+
+version = mod_version
+group = mod_group_id
+
+base { archivesName = mod_id }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+repositories {
+    flatDir { dirs 'libs' }
+    exclusiveContent {
+        forRepository { maven { name = 'Modrinth'; url = 'https://api.modrinth.com/maven' } }
+        filter { includeGroup 'maven.modrinth' }
+    }
+}
+
+neoForge {
+    version = project.neo_version
+    parchment {
+        // Mojang names are used throughout; no Parchment needed.
+    }
+    runs {
+        client { client() }
+        server { server(); programArgument '--nogui' }
+    }
+    mods {
+        "${mod_id}" { sourceSet(sourceSets.main) }
+    }
+}
+
+dependencies {
+    // The weather mod is required at runtime but compile-only here: its jar is never packaged.
+    compileOnly fileTree(dir: 'libs', include: '*.jar')
+    if (project.pmweather_version) {
+        compileOnly "maven.modrinth:pmweather:${pmweather_version}"
+        runtimeOnly "maven.modrinth:pmweather:${pmweather_version}"
+    }
+}
+
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [mod_version: mod_version]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/neoforge.mods.toml']) { expand replaceProperties }
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title'   : mod_id,
+                'Implementation-Title'  : mod_id,
+                'Implementation-Version': project.version,
+                'MixinConfigs'          : 'atomicsky.mixins.json'
+        ])
+    }
+}
+
+idea { module { downloadSources = true; downloadJavadoc = true } }

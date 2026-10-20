@@ -1,0 +1,19 @@
+# Gradle / IDE
+.gradle/
+build/
+run/
+runs/
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+bin/
+eclipse/
+# Closed-source compile-time dependencies (ProtoManly's Weather) and the offline stub jars: never commit
+libs/*.jar
+*.class
+__pycache__/
