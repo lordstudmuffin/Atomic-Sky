@@ -113,11 +113,15 @@ public final class MushroomCloud {
         return n;
     }
 
-    /** Puff counts (fireball, stem, cap) that fit in what the cap leaves free, or null when that is fewer than six. */
+    /**
+     * Puff counts (fireball, stem, cap) for a new cloud: the full set when no cloud stands, otherwise at most 18 and
+     * never more than the cap leaves free (so a second cloud gets 18, a third the last 8), or null below six.
+     */
     private static int[] countsFor(int inUse) {
         int free = PUFF_CAP - inUse;
         int full = FULL[0] + FULL[1] + FULL[2];
-        if (free >= full) return FULL;
+        if (inUse == 0 && free >= full) return FULL;
+        free = Math.min(free, 18);
         if (free < 6) return null;
         double scale = (double) free / full;
         int[] c = new int[]{Math.max(1, (int) (FULL[0] * scale)), Math.max(1, (int) (FULL[1] * scale)), Math.max(2, (int) (FULL[2] * scale))};
