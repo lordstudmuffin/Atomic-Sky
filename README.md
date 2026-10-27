@@ -51,9 +51,10 @@ Breaking an armed bomb also disarms it.
    on the weather mod's calendar start to fall, bottom out `temperatureDropC` lower, and recover after `winter.days`
    calendar days. This feeds the weather mod's thermodynamics (its storms, snow and seasons react), not vanilla biome
    temperature.
-7. **Mushroom cloud** (client, `mushroomCloud`). Built from the weather mod's volumetric smoke puffs, animated for the
-   anchored over the crater (it only leans slightly with the wind) and standing until the fallout stops, then thinning
-   away over a minute. Turn off or lower `particleDensity` on weaker PCs.
+7. **Mushroom cloud** (client, `mushroomCloud`). Built from the weather mod's volumetric smoke puffs: a fireball that
+   lifts into a rising stem and a cap that spreads and flattens, anchored over the crater (it only leans slightly with
+   the wind) and standing until the fallout stops, then thinning away over a minute. Turn off or lower
+   `particleDensity` on weaker PCs.
 
 ## Commands (op level 2)
 - `/atomicsky detonate [x y z] [radius]` : detonate without a bomb (default: where you stand, config radius)
