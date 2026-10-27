@@ -73,6 +73,8 @@ Watch the F3 FPS counter during the mushroom cloud and fallout. If it drops too 
   heart every 3 seconds down to the last half-heart at level I, and every 1.5 seconds with no floor at level II (deep
   in the plume, or on 4+ layers of fallout). Before this fix nothing happened while you stayed put.
 - **Plume end.** Watch the sky after the 20 minutes: it should clear gradually over about two minutes, not snap.
+- **Pond with stairs.** Put waterlogged stairs or a slab in a pond within 100 blocks of the bomb: after the heat the
+  stairs are still there, dry; the open water next to them is gone.
 
 ## If something breaks
 Send `logs/latest.log` (and `crash-reports/` if any). Likely suspects, in order: a mixin that did not apply (then
