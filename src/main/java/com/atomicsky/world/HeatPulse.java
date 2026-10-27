@@ -122,11 +122,17 @@ final class HeatPulse {
         BlockPos above = pos.above();
         boolean dries = ASConfig.HEAT_DRIES_SOIL.get();
 
-        // Water: boil off shallow surface water near the centre.
-        if (ASConfig.HEAT_EVAPORATES_WATER.get() && (top.is(Blocks.WATER) || !top.getFluidState().isEmpty())) {
-            if (strength > 0.55 && top.getFluidState().isSource()) {
-                BlockState below = level.getBlockState(pos.below());
-                if (below.isSolid()) level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+        // Water: boil off shallow surface water near the centre. A waterlogged block (stairs, a slab, a fence in a
+        // pond) only loses its water; lava and other fluids are left alone.
+        if (!top.getFluidState().isEmpty()) {
+            if (ASConfig.HEAT_EVAPORATES_WATER.get() && strength > 0.55 && top.getFluidState().is(net.minecraft.tags.FluidTags.WATER)
+                    && top.getFluidState().isSource()) {
+                if (top.is(Blocks.WATER)) {
+                    BlockState below = level.getBlockState(pos.below());
+                    if (below.isSolid()) level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                } else if (top.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED)) {
+                    level.setBlock(pos, top.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED, false), Block.UPDATE_ALL);
+                }
             }
             return;
         }

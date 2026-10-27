@@ -95,7 +95,8 @@ mushroom cloud scale with `particleDensity`.
   cutting off at 14% a minute after the fallout ends; a stack of `maxLayers` fallout lasts `decayDays` (a full stack
   used to last twice that); each bomb's boom reaches you in its own time and each shock front shakes the camera once;
   three or more mushroom clouds share the weather mod's smoke budget instead of fighting over it; the crater dig
-  resumes mid-ring, so a tick never exceeds its block budget on the big middle rings. Saves from 1.0.4 load
+  resumes mid-ring, so a tick never exceeds its block budget on the big middle rings; the heat boils the water out of
+  a waterlogged block (stairs, slabs, fences in a pond) instead of deleting the block. Saves from 1.0.4 load
   unchanged; the network protocol is new, so server and clients must all run 1.0.5.
 - 1.0.4: the heat no longer damages or ignites players and mobs (radiation is the only lingering danger); the mushroom
   cloud stays up until the fallout ends.
