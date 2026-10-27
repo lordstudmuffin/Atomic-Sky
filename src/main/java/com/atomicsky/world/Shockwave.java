@@ -53,7 +53,7 @@ final class Shockwave {
             double perTick = peak * falloff * tail * speedPerTick / (BAND * 2.0);
             if (perTick < 0.002) continue;
             // A roof (a house, a cave, a bunker) muffles the front: a third of the push, a third of the damage.
-            boolean sheltered = !level.canSeeSky(e.blockPosition());
+            boolean sheltered = !com.atomicsky.util.Exposure.exposed(level, e.blockPosition());
             if (sheltered) perTick *= 0.3;
             double inv = 1.0 / dist;
             Vec3 push = new Vec3(dx * inv * perTick, perTick * 0.35, dz * inv * perTick);

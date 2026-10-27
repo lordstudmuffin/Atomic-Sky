@@ -156,7 +156,7 @@ public final class ClientEffects {
                 double px = x + (RAND.nextDouble() - 0.5) * 24;
                 double pz = z + (RAND.nextDouble() - 0.5) * 24;
                 double py = cam.getY() + 4 + RAND.nextDouble() * 12;
-                if (!level.canSeeSky(net.minecraft.core.BlockPos.containing(px, py, pz))) continue;
+                if (!com.atomicsky.util.Exposure.exposed(level, net.minecraft.core.BlockPos.containing(px, py, pz))) continue;
                 level.addParticle(AtomicSky.ASH.get(), px, py, pz, wind.x, -0.02 - RAND.nextDouble() * 0.02, wind.z);
             }
         }

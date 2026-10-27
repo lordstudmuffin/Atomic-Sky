@@ -73,6 +73,8 @@ Watch the F3 FPS counter during the mushroom cloud and fallout. If it drops too 
   heart every 3 seconds down to the last half-heart at level I, and every 1.5 seconds with no floor at level II (deep
   in the plume, or on 4+ layers of fallout). Before this fix nothing happened while you stayed put.
 - **Plume end.** Watch the sky after the 20 minutes: it should clear gradually over about two minutes, not snap.
+- **Nether blast.** Detonate in a big open Nether cave: the shockwave should hit you at full strength in the open and
+  a third of it under a netherrack overhang, and the plume should give Radiation Sickness in the open.
 - **Pond with stairs.** Put waterlogged stairs or a slab in a pond within 100 blocks of the bomb: after the heat the
   stairs are still there, dry; the open water next to them is gone.
 

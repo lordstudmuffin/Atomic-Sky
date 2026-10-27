@@ -107,7 +107,7 @@ final class FalloutPlume {
             if (e instanceof Player p && (p.isCreative() || p.isSpectator())) continue;
             double strength = d.falloutAt(e.getX(), e.getZ());
             if (strength < 0.1) continue;
-            if (!level.canSeeSky(e.blockPosition())) continue;   // a roof keeps the ash off you
+            if (!com.atomicsky.util.Exposure.exposed(level, e.blockPosition())) continue;   // a roof keeps the ash off you
             LivingEntity living = (LivingEntity) e;
             if (com.atomicsky.item.RadiationSuitItem.isProtected(living)) continue;
             int amp = strength > 0.6 ? 1 : 0;

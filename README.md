@@ -97,7 +97,9 @@ mushroom cloud scale with `particleDensity`.
   used to last twice that); each bomb's boom reaches you in its own time and each shock front shakes the camera once;
   three or more mushroom clouds share the weather mod's smoke budget instead of fighting over it; the crater dig
   resumes mid-ring, so a tick never exceeds its block budget on the big middle rings; the heat boils the water out of
-  a waterlogged block (stairs, slabs, fences in a pond) instead of deleting the block. Saves from 1.0.4 load
+  a waterlogged block (stairs, slabs, fences in a pond) instead of deleting the block; in the Nether, where nothing can
+  see the sky, everyone used to count as sheltered (a third of the shockwave, no radiation from the plume); shelter
+  there now means a solid block within 12 blocks overhead. Saves from 1.0.4 load
   unchanged; the network protocol is new, so server and clients must all run 1.0.5.
 - 1.0.4: the heat no longer damages or ignites players and mobs (radiation is the only lingering danger); the mushroom
   cloud stays up until the fallout ends.
@@ -116,6 +118,8 @@ mushroom cloud scale with `particleDensity`.
 - The weather mod requires Veil; without a shader-capable GPU its own visuals already struggle, and so will ours.
 - Fallout does not feed Mekanism's radiation system; the two are separate.
 - The blast ignores FTB Chunks claims the way TNT does.
+- In a dimension with a ceiling (the Nether) "out in the open" means no solid block within 12 blocks overhead, since
+  nothing there can see the sky; the crater still digs up to the bedrock roof.
 - The crater and dead zone are worked on loaded chunks. Chunks nobody has loaded yet are caught up the moment they
   load, one chunk per tick, for as long as the detonation is still tracked (until its fallout ends, or its nuclear
   winter ends when that is on).

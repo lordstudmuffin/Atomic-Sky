@@ -73,7 +73,7 @@ public final class ShockwaveField {
         if (total == Vec3.ZERO) return total;
         // Under a roof the front is muffled rather than stopped: blast wind still finds its way in.
         try {
-            if (!level.canSeeSky(BlockPos.containing(pos))) total = total.scale(0.35);
+            if (!com.atomicsky.util.Exposure.exposed(level, BlockPos.containing(pos))) total = total.scale(0.35);
         } catch (Throwable ignored) {
             // Called from a render or worker thread while a chunk is going away: keep the open-air value.
         }
