@@ -5,6 +5,7 @@ import com.atomicsky.AtomicSky;
 import com.atomicsky.block.FalloutLayerBlock;
 import com.atomicsky.net.DetonationSyncPayload;
 import com.atomicsky.net.FlashPayload;
+import com.atomicsky.weather.ShockwaveField;
 import com.atomicsky.weather.WeatherBridge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -16,14 +17,19 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -36,6 +42,10 @@ public class DetonationManager extends SavedData {
 
     private final List<Detonation> detonations = new ArrayList<>();
     private int nextId = 1;
+
+    /** Chunks that loaded since last tick and may need the crater or dead zone caught up (never saved). */
+    private final transient Deque<Long> pendingChunks = new ArrayDeque<>();
+    private transient ServerLevel boundLevel;
 
     public static DetonationManager get(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(FACTORY, NAME);
@@ -77,8 +87,6 @@ public class DetonationManager extends SavedData {
         if (boundLevel != null) detonate(boundLevel, center, yield, armedBy);
     }
 
-    private transient ServerLevel boundLevel;
-
     public static void onLevelTick(LevelTickEvent.Post event) {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         if (level.getDataStorage() == null) return;
@@ -89,6 +97,7 @@ public class DetonationManager extends SavedData {
 
     private void tick(ServerLevel level) {
         if (detonations.isEmpty()) {
+            pendingChunks.clear();
             if (level.getGameTime() % 100 == 0) WeatherBridge.setServerWinter(level, 0);
             return;
         }
@@ -107,13 +116,49 @@ public class DetonationManager extends SavedData {
                 dirty = true;
             }
         }
-        if (now % 20 == 0) {
+        catchUpChunks(level);
+        if (dirty || now % 20 == 0) {
+            // A detonation that just ended must reach the clients at once, or they keep drawing it until the next relog.
             WeatherBridge.setServerWinter(level, winterFactor(level));
             sync(level);
             setDirty();
-        } else if (dirty) {
-            setDirty();
         }
+    }
+
+    /** One freshly loaded chunk per tick: dig and bake whatever part of a crater or dead zone the sweeps missed. */
+    private void catchUpChunks(ServerLevel level) {
+        while (!pendingChunks.isEmpty()) {
+            long key = pendingChunks.poll();
+            ChunkPos chunk = new ChunkPos(key);
+            if (!level.hasChunk(chunk.x, chunk.z)) continue;
+            boolean worked = false;
+            for (Detonation d : detonations) {
+                if (d.touchedChunks.contains(key)) continue;
+                double r = d.groundWorkRadius() + 16;
+                double dx = chunk.getMiddleBlockX() - d.center.x, dz = chunk.getMiddleBlockZ() - d.center.z;
+                if (dx * dx + dz * dz > r * r) continue;
+                boolean complete = Crater.catchUpChunk(level, d, chunk);
+                complete &= HeatPulse.catchUpChunk(level, d, chunk);
+                if (complete) {
+                    d.touchedChunks.add(key);
+                    setDirty();
+                }
+                worked = true;
+            }
+            if (worked) return;   // one chunk's worth of block work per tick is plenty
+        }
+    }
+
+    public static void onChunkLoad(ChunkEvent.Load event) {
+        if (!(event.getLevel() instanceof ServerLevel level)) return;
+        if (level.getDataStorage() == null) return;
+        DetonationManager m = get(level);
+        if (m.detonations.isEmpty()) return;
+        m.pendingChunks.add(event.getChunk().getPos().toLong());
+    }
+
+    public static void onServerStopped(ServerStoppedEvent event) {
+        WeatherBridge.clearServer();
     }
 
     public void sync(ServerLevel level) {
@@ -176,7 +221,11 @@ public class DetonationManager extends SavedData {
 
     public void clearAll() {
         detonations.clear();
-        if (boundLevel != null) WeatherBridge.setServerWinter(boundLevel, 0);
+        pendingChunks.clear();
+        if (boundLevel != null) {
+            WeatherBridge.setServerWinter(boundLevel, 0);
+            ShockwaveField.setServerFronts(boundLevel.dimension(), List.of());
+        }
         setDirty();
     }
 

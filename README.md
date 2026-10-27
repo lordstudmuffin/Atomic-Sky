@@ -1,4 +1,4 @@
-# Atomic Sky 1.0.4
+# Atomic Sky 1.0.5
 
 A nuke that changes the weather. Built on **ProtoManly's Weather** (required) for Minecraft 1.21.1, NeoForge 21.1.x.
 
@@ -6,7 +6,7 @@ A nuke that changes the weather. Built on **ProtoManly's Weather** (required) fo
 - Minecraft 1.21.1, NeoForge 21.1.0 or newer (tested target: 21.1.262)
 - ProtoManly's Weather 0.17.x (and its own dependency, Veil)
 
-Drop `atomicsky-1.0.4.jar` into `mods/` next to the weather mod. Config files appear on first launch as
+Drop `atomicsky-1.0.5.jar` into `mods/` next to the weather mod. Config files appear on first launch as
 `config/atomicsky-common.toml` (world side) and `config/atomicsky-client.toml` (visuals).
 
 ## What it adds
@@ -78,6 +78,17 @@ only scan the shock ring, and all client visuals are plain particles plus one fo
 mushroom cloud scale with `particleDensity`.
 
 ## Changes
+- 1.0.5 (bug-fix pass): a bunker dug deeper than the crater floor now survives the blast (the first-tick kill zone used
+  to be a sphere as wide as the crater, so it reached 120 blocks straight down); a roof cuts shockwave damage the way it
+  already cut the push; parts of the crater and dead zone that sit in chunks nobody had loaded (outside the view
+  distance) are dug and baked when those chunks next load, so the crater is never left with a notch; one mushroom
+  cloud per detonation, so a second bomb no longer wipes out the first cloud, and the cloud is rebuilt for players who
+  log in, change dimension or were too far away for the flash; the shockwave wind of a bomb in one dimension no longer
+  blows in another; the server's shockwave speed, blast wind and winter temperature drop are sent to clients, so a
+  client's own config file can no longer disagree with the server's; a detonation that ends is sent to clients at once
+  instead of at the next relog; creative and spectator players no longer catch Radiation Sickness from fallout on the
+  ground; an unused particle definition that logged a warning on every resource reload is gone. Saves from 1.0.4 load
+  unchanged; the network protocol is new, so server and clients must all run 1.0.5.
 - 1.0.4: the heat no longer damages or ignites players and mobs (radiation is the only lingering danger); the mushroom
   cloud stays up until the fallout ends.
 - 1.0.3: dead zone as wide as the crater around it, baked deterministically; heat and fire reach 100 blocks past it;
@@ -95,6 +106,9 @@ mushroom cloud scale with `particleDensity`.
 - The weather mod requires Veil; without a shader-capable GPU its own visuals already struggle, and so will ours.
 - Fallout does not feed Mekanism's radiation system; the two are separate.
 - The blast ignores FTB Chunks claims the way TNT does.
+- The crater and dead zone are worked on loaded chunks. Chunks nobody has loaded yet are caught up the moment they
+  load, one chunk per tick, for as long as the detonation is still tracked (until its fallout ends, or its nuclear
+  winter ends when that is on).
 
 ## Building
 Standard NeoForge (ModDevGradle) project: `./gradlew build` puts the jar in `build/libs/`. ProtoManly's Weather is

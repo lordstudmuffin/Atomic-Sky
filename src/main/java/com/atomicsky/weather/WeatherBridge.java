@@ -102,16 +102,23 @@ public final class WeatherBridge {
         else SERVER_WINTER.put(level.dimension(), factor);
     }
 
-    /** Nuclear-winter temperature drop (degrees C) at a level right now; read by the temperature mixin, possibly off-thread. */
+    /** Server stopped (or a different world is about to open in singleplayer): forget every per-dimension value. */
+    public static void clearServer() {
+        SERVER_WINTER.clear();
+        ShockwaveField.clearServer();
+    }
+
+    /**
+     * Nuclear-winter temperature drop (degrees C) at a level right now; read by the temperature mixin, possibly
+     * off-thread. The client uses the drop the server sent it, so a server's config wins over the client's own file.
+     */
     public static float temperatureDropC(Level level) {
-        if (!ASConfig.WINTER_ENABLED.get()) return 0;
-        double factor;
         if (level.isClientSide) {
-            factor = com.atomicsky.client.ClientState.winterFactor();
-        } else {
-            Double f = SERVER_WINTER.get(level.dimension());
-            factor = f == null ? 0 : f;
+            return (float) com.atomicsky.client.ClientState.winterDropC();
         }
+        if (!ASConfig.WINTER_ENABLED.get()) return 0;
+        Double f = SERVER_WINTER.get(level.dimension());
+        double factor = f == null ? 0 : f;
         if (factor <= 0) return 0;
         return (float) (factor * ASConfig.WINTER_TEMPERATURE_DROP.get());
     }

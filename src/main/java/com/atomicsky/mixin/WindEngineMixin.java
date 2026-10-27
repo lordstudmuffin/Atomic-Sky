@@ -17,7 +17,7 @@ public class WindEngineMixin {
     private static void atomicsky$addBlastWind(Vec3 pos, Level level, boolean a, boolean b, boolean c, boolean d, boolean e, int f,
                                                CallbackInfoReturnable<Vec3> cir) {
         if (level == null || pos == null) return;
-        if (ShockwaveField.fronts(level.isClientSide).isEmpty()) return;
+        if (ShockwaveField.fronts(level).isEmpty()) return;
         Vec3 blast = ShockwaveField.windAt(pos, level);
         if (blast == Vec3.ZERO) return;
         Vec3 base = cir.getReturnValue();

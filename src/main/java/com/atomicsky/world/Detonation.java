@@ -41,6 +41,18 @@ public final class Detonation {
     public double winterStartDay, winterEndDay;
     public boolean winterDone;
 
+    /**
+     * Chunks (as ChunkPos longs) the crater dig and the dead-zone bake have already visited. A chunk that was not
+     * loaded while the sweeps ran (outside the view distance, or nobody nearby) is caught up when it next loads, so
+     * the crater and the dead zone are complete however small the server's view distance is.
+     */
+    public final java.util.Set<Long> touchedChunks = new java.util.HashSet<>();
+
+    /** Outer radius in blocks of the ground work (crater and dead zone) that chunk catch-up has to cover. */
+    public double groundWorkRadius() {
+        return Math.max(craterR, deadRadius());
+    }
+
     public Detonation() {}
 
     public Detonation(int id, Vec3 center, int yield, long startTick, UUID armedBy, long seed) {
@@ -177,6 +189,10 @@ public final class Detonation {
         t.putDouble("WinterStartDay", winterStartDay);
         t.putDouble("WinterEndDay", winterEndDay);
         t.putBoolean("WinterDone", winterDone);
+        long[] chunks = new long[touchedChunks.size()];
+        int i = 0;
+        for (long c : touchedChunks) chunks[i++] = c;
+        t.putLongArray("TouchedChunks", chunks);
         return t;
     }
 
@@ -207,6 +223,7 @@ public final class Detonation {
         d.winterStartDay = t.getDouble("WinterStartDay");
         d.winterEndDay = t.getDouble("WinterEndDay");
         d.winterDone = t.getBoolean("WinterDone");
+        for (long c : t.getLongArray("TouchedChunks")) d.touchedChunks.add(c);
         return d;
     }
 }

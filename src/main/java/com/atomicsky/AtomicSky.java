@@ -121,7 +121,6 @@ public class AtomicSky {
     }
 
     public static final DeferredHolder<ParticleType<?>, SimpleParticleType> ASH = PARTICLES.register("ash", () -> new SimpleParticleType(false));
-    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> CLOUD_PUFF = PARTICLES.register("cloud_puff", () -> new SimpleParticleType(false));
     public static final DeferredHolder<ParticleType<?>, SimpleParticleType> EMBER = PARTICLES.register("ember", () -> new SimpleParticleType(false));
 
     public AtomicSky(IEventBus modBus, ModContainer container) {
@@ -141,6 +140,8 @@ public class AtomicSky {
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, ASCommands::register);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedInEvent.class, DetonationManager::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerChangedDimensionEvent.class, DetonationManager::onPlayerChangedDimension);
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.level.ChunkEvent.Load.class, DetonationManager::onChunkLoad);
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.server.ServerStoppedEvent.class, DetonationManager::onServerStopped);
     }
 
     private static void addToCreativeTabs(BuildCreativeModeTabContentsEvent event) {

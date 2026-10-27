@@ -1,4 +1,4 @@
-# Atomic Sky 1.0.4: testing guide
+# Atomic Sky 1.0.5: testing guide
 
 1.0.0 ran in the Test instance on 2026-10-19 with no errors (both mixins applied). 1.0.1 fixed what the recording
 showed, 1.0.2 added the big crater and 1.0.3 the dead zone, suit, heat reach, anchored cloud and visible shock front;
@@ -6,7 +6,7 @@ none of these has been run in game yet. The config file in the Test instance was
 three blocks above bedrock, so the crater is a shallow dent you can barely see.
 
 ## 0. Does it load? (Done-when 1)
-1. Put `atomicsky-1.0.4.jar` in `mods/` (remove the older one). Launch. Check `logs/latest.log` for `atomicsky` errors, especially mixin
+1. Put `atomicsky-1.0.5.jar` in `mods/` (remove the older one). Launch. Check `logs/latest.log` for `atomicsky` errors, especially mixin
    lines (search for `WindEngineMixin`, `ThermodynamicEngineMixin`, "Mixin apply failed").
 2. Create a creative superflat or plains world. Search JEI/creative for "Atomic Bomb", "Fissile Core", "Geiger Counter":
    all three should have recipe pages.
@@ -60,6 +60,15 @@ scales everything else up by half and the crater with it.
 Watch the F3 FPS counter during the mushroom cloud and fallout. If it drops too low, set `particleDensity` to 0.5 or
 `mushroomCloud = false` in `config/atomicsky-client.toml`. Record the full sequence from ~150 blocks away for the video
 (flash, crater, fires, shockwave, darkening sky, ash, then winter via `/time add`).
+
+## 7. The 1.0.5 fixes
+- **Bunker.** Dig down 60 blocks under where the bomb will sit, stand there in survival, detonate with the command at the
+  surface. You should live (the crater floor is 45 deep). Stand 20 blocks down instead and you should die.
+- **Two clouds.** Detonate twice, a few hundred blocks apart. Both mushroom clouds should stand.
+- **Relog.** Detonate, wait ten seconds, save and quit, reopen the world. The cloud should be back, fully grown.
+- **Far chunks.** Set render distance to 6, detonate, then walk 200 blocks out in any direction after a minute. The
+  dead zone should continue without a notch where the chunks had not been loaded.
+- **Nether.** Detonate in the Overworld, go to the Nether while the shockwave is still running: no blast wind there.
 
 ## If something breaks
 Send `logs/latest.log` (and `crash-reports/` if any). Likely suspects, in order: a mixin that did not apply (then

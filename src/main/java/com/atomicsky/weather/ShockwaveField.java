@@ -1,16 +1,20 @@
 package com.atomicsky.weather;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The blast wind that the shockwave adds to the weather mod's wind field. Both sides keep a per-tick snapshot of
- * the active shock fronts here; {@link com.atomicsky.mixin.WindEngineMixin} adds the result to every
- * {@code WindEngine.getWind} call, so the weather mod's own entity pushing, debris, smoke and particles all feel it.
+ * The blast wind that the shockwave adds to the weather mod's wind field. The server keeps a per-tick snapshot of
+ * the active shock fronts per dimension here, the client one for the level it is in;
+ * {@link com.atomicsky.mixin.WindEngineMixin} adds the result to every {@code WindEngine.getWind} call, so the
+ * weather mod's own entity pushing, debris, smoke and particles all feel it.
  */
 public final class ShockwaveField {
     /** One expanding ring of wind. All distances in blocks, speeds in mph (the weather mod's wind unit). */
@@ -33,24 +37,33 @@ public final class ShockwaveField {
         }
     }
 
-    private static volatile List<Front> serverFronts = List.of();
+    private static final Map<ResourceKey<Level>, List<Front>> SERVER_FRONTS = new ConcurrentHashMap<>();
     private static volatile List<Front> clientFronts = List.of();
 
-    public static void setServerFronts(List<Front> fronts) {
-        serverFronts = fronts.isEmpty() ? List.of() : new ArrayList<>(fronts);
+    /** Server side: the fronts active in one dimension (a nuke in the Nether must not blow wind in the Overworld). */
+    public static void setServerFronts(ResourceKey<Level> dimension, List<Front> fronts) {
+        if (fronts.isEmpty()) SERVER_FRONTS.remove(dimension);
+        else SERVER_FRONTS.put(dimension, new ArrayList<>(fronts));
+    }
+
+    /** Forget every server front (server stopped, or a different world is being opened). */
+    public static void clearServer() {
+        SERVER_FRONTS.clear();
     }
 
     public static void setClientFronts(List<Front> fronts) {
         clientFronts = fronts.isEmpty() ? List.of() : new ArrayList<>(fronts);
     }
 
-    public static List<Front> fronts(boolean clientSide) {
-        return clientSide ? clientFronts : serverFronts;
+    public static List<Front> fronts(Level level) {
+        if (level.isClientSide) return clientFronts;
+        List<Front> f = SERVER_FRONTS.get(level.dimension());
+        return f == null ? List.of() : f;
     }
 
-    /** Total blast wind at a point for the given side; Vec3.ZERO when no front covers it. Cheap when nothing is active. */
+    /** Total blast wind at a point for the given level; Vec3.ZERO when no front covers it. Cheap when nothing is active. */
     public static Vec3 windAt(Vec3 pos, Level level) {
-        List<Front> fronts = level.isClientSide ? clientFronts : serverFronts;
+        List<Front> fronts = fronts(level);
         if (fronts.isEmpty()) return Vec3.ZERO;
         Vec3 total = Vec3.ZERO;
         for (Front f : fronts) {

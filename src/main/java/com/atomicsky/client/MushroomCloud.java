@@ -5,29 +5,35 @@ import dev.protomanly.pmweather.event.GameBusClientEvents;
 import dev.protomanly.pmweather.weather.VolumetricSmokeParticle;
 import dev.protomanly.pmweather.weather.WeatherHandlerClient;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
- * The mushroom cloud, built from the weather mod's own volumetric smoke (the raymarched puffs its wildfires make).
+ * A mushroom cloud, built from the weather mod's own volumetric smoke (the raymarched puffs its wildfires make).
  * A few dozen big puffs: a glowing fireball that cools, a stem that rises, and a cap that spreads out and flattens.
- * Positions are animated here each tick; the weather mod renders them and drifts them with its wind.
+ * Positions are animated here each tick; the weather mod renders them and drifts them with its wind. One cloud per
+ * detonation; a cloud can also be started part-way through its life for a player who missed the flash.
  */
 public final class MushroomCloud {
     private static final RandomSource RAND = RandomSource.create();
-    private static final List<Puff> puffs = new ArrayList<>();
+    private static final List<MushroomCloud> CLOUDS = new ArrayList<>();
     private static final int FADE_TICKS = 1200;    // a minute of thinning once the fallout has stopped
-    private static int lifetime = 7200;            // set at start: the cloud stays up until fallout ends, then thins
-    private static int detonationId = -1;
-    private static int fadeStart = -1;             // age at which the fallout was seen to be done
-    private static Vec3 origin;
-    private static int age;
-    private static double driftX, driftZ;
-    private static double stemHeight, capRadius;
+    /** The weather mod keeps at most 55 puffs; a second cloud gets a smaller set so both fit under that cap. */
+    private static final int[] FULL = {3, 8, 18}, SMALL = {2, 5, 11};
+
+    private final List<Puff> puffs = new ArrayList<>();
+    private final int detonationId;
+    private final int lifetime;                    // ticks the cloud stays up before thinning on its own
+    private final Vec3 origin;
+    private final double stemHeight, capRadius;
+    private final WeatherHandlerClient weather;
+    private int age;
+    private int fadeStart = -1;                    // age at which the fallout was seen to be done
+    private double driftX, driftZ;
 
     private static final class Puff {
         VolumetricSmokeParticle p;
@@ -39,22 +45,42 @@ public final class MushroomCloud {
             this.size = size; this.opacity = opacity; this.brightness = brightness;
         }
     }
-    private static WeatherHandlerClient weatherRef;
 
-    public static void start(Vec3 center, int yield) {
-        start(center, yield, -1);
+    private MushroomCloud(WeatherHandlerClient weather, Vec3 center, int yield, int id, int lifetime, int[] counts) {
+        this.weather = weather;
+        this.origin = center;
+        this.detonationId = id;
+        this.lifetime = lifetime;
+        this.stemHeight = yield * 4.5 + 40;
+        this.capRadius = yield * 2.6;
+        float stemSize = (float) (yield * 1.8);
+        float capSize = (float) (yield * 3.4);
+        // Fireball
+        for (int i = 0; i < counts[0]; i++) {
+            float sz = (float) (yield * 2.4);
+            VolumetricSmokeParticle p = weather.spawnSmoke(center, sz, 0.95F, 5.0F, lifetime);
+            puffs.add(new Puff(p, 0, RAND.nextDouble() * Math.PI * 2, RAND.nextDouble() * 0.4, 0, RAND.nextDouble(), sz, 0.95F, 5.0F));
+        }
+        // Stem
+        for (int i = 0; i < counts[1]; i++) {
+            VolumetricSmokeParticle p = weather.spawnSmoke(center, stemSize, 0.85F, 2.5F, lifetime);
+            puffs.add(new Puff(p, 1, RAND.nextDouble() * Math.PI * 2, RAND.nextDouble() * 0.35, (i + 0.5) / counts[1], RAND.nextDouble(), stemSize, 0.85F, 2.5F));
+        }
+        // Cap
+        for (int i = 0; i < counts[2]; i++) {
+            VolumetricSmokeParticle p = weather.spawnSmoke(center, capSize, 0.9F, 2.0F, lifetime);
+            double radial = i < counts[2] / 4 ? RAND.nextDouble() * 0.3 : 0.45 + RAND.nextDouble() * 0.55;
+            puffs.add(new Puff(p, 2, RAND.nextDouble() * Math.PI * 2, radial, 1.0, RAND.nextDouble(), capSize, 0.9F, 2.0F));
+        }
     }
 
     public static void start(Vec3 center, int yield, int id) {
-        clear();
-        detonationId = id;
-        fadeStart = -1;
-        try {
-            // Up for the whole fallout: delay + duration + the server's minute of thinning, plus a margin.
-            lifetime = (com.atomicsky.ASConfig.FALLOUT_DELAY_SECONDS.get() * 20 + com.atomicsky.ASConfig.FALLOUT_MINUTES.get() * 1200 + 2400);
-        } catch (Throwable t) {
-            lifetime = 30000;
-        }
+        startAged(center, yield, id, 0);
+    }
+
+    /** Start a cloud that is already {@code age} ticks old (a player who joined after the flash sees it fully grown). */
+    public static void startAged(Vec3 center, int yield, int id, int age) {
+        if (id >= 0 && has(id)) return;
         WeatherHandlerClient weather;
         try {
             weather = GameBusClientEvents.getClientWeather();
@@ -62,39 +88,37 @@ public final class MushroomCloud {
             return;
         }
         if (weather == null) return;
-        weatherRef = weather;
-        origin = center;
-        age = 0;
-        driftX = driftZ = 0;
-        stemHeight = yield * 4.5 + 40;
-        capRadius = yield * 2.6;
-        float stemSize = (float) (yield * 1.8);
-        float capSize = (float) (yield * 3.4);
+        int lifetime = Math.max(600, ClientState.cloudLifetime - age);
         try {
-            // Fireball
-            for (int i = 0; i < 3; i++) {
-                float sz = (float) (yield * 2.4);
-                VolumetricSmokeParticle p = weather.spawnSmoke(center, sz, 0.95F, 5.0F, lifetime);
-                puffs.add(new Puff(p, 0, RAND.nextDouble() * Math.PI * 2, RAND.nextDouble() * 0.4, 0, RAND.nextDouble(), sz, 0.95F, 5.0F));
-            }
-            // Stem
-            for (int i = 0; i < 8; i++) {
-                VolumetricSmokeParticle p = weather.spawnSmoke(center, stemSize, 0.85F, 2.5F, lifetime);
-                puffs.add(new Puff(p, 1, RAND.nextDouble() * Math.PI * 2, RAND.nextDouble() * 0.35, (i + 0.5) / 8.0, RAND.nextDouble(), stemSize, 0.85F, 2.5F));
-            }
-            // Cap
-            for (int i = 0; i < 18; i++) {
-                VolumetricSmokeParticle p = weather.spawnSmoke(center, capSize, 0.9F, 2.0F, lifetime);
-                double radial = i < 4 ? RAND.nextDouble() * 0.3 : 0.45 + RAND.nextDouble() * 0.55;
-                puffs.add(new Puff(p, 2, RAND.nextDouble() * Math.PI * 2, radial, 1.0, RAND.nextDouble(), capSize, 0.9F, 2.0F));
-            }
+            MushroomCloud cloud = new MushroomCloud(weather, center, yield, id, lifetime, CLOUDS.isEmpty() ? FULL : SMALL);
+            cloud.age = Math.max(0, age);
+            CLOUDS.add(cloud);
+            // Puffs ease toward their targets, so an aged cloud needs a few ticks to take shape; snap it there.
+            for (int i = 0; i < 40; i++) cloud.place(1.0);
         } catch (Throwable t) {
-            clear();
+            // The weather mod refused to spawn smoke (no renderer yet, or a shader problem): no cloud this time.
         }
     }
 
+    public static boolean has(int id) {
+        for (MushroomCloud c : CLOUDS) if (c.detonationId == id) return true;
+        return false;
+    }
+
     public static void tick(ClientLevel level) {
-        if (puffs.isEmpty() || origin == null) return;
+        if (CLOUDS.isEmpty()) return;
+        Iterator<MushroomCloud> it = CLOUDS.iterator();
+        while (it.hasNext()) {
+            MushroomCloud c = it.next();
+            if (!c.tickOne(level)) {
+                c.kill();
+                it.remove();
+            }
+        }
+    }
+
+    /** One tick of animation; false once the cloud has thinned away. */
+    private boolean tickOne(ClientLevel level) {
         age++;
         // The server says when this detonation's fallout is over; the cloud then thins out over a minute and goes.
         if (fadeStart < 0 && detonationId >= 0) {
@@ -104,10 +128,7 @@ public final class MushroomCloud {
             }
             if (ClientState.lastSyncServerTick > 0 && (done || (!found && age > 200))) fadeStart = age;
         }
-        if (fadeStart >= 0 && age > fadeStart + FADE_TICKS) {
-            clear();
-            return;
-        }
+        if (fadeStart >= 0 && age > fadeStart + FADE_TICKS) return false;
         if (fadeStart < 0 && age > lifetime + 100) fadeStart = age;
         // Drift the whole cloud with the weather mod's wind at cap height.
         if (age % 20 == 1) {
@@ -117,10 +138,14 @@ public final class MushroomCloud {
             driftZ += wind.z * WeatherBridge.MPH_TO_BLOCKS_PER_TICK * 20 * 0.06;
             double lean = Math.hypot(driftX, driftZ), maxLean = capRadius * 0.5;
             if (lean > maxLean) { driftX *= maxLean / lean; driftZ *= maxLean / lean; }
-        } else {
-            // Smooth the once-a-second step over the following ticks is not needed: the puffs lag behind anyway.
         }
-        keepAlive(level);
+        keepAlive();
+        place(0.12);
+        return true;
+    }
+
+    /** Moves every puff toward where it belongs at the current age; {@code ease} 1.0 snaps, 0.12 glides. */
+    private void place(double ease) {
         double rise = ease(Math.min(1.0, age / 700.0));          // 35 s to full height
         double spread = ease(Math.min(1.0, Math.max(0, age - 300) / 900.0));   // cap spreads after the stem is up
         double sag = Math.min(1.0, Math.max(0, age - 2400) / 9600.0);          // then slowly flattens and lowers, and holds
@@ -157,9 +182,8 @@ public final class MushroomCloud {
             }
             Vec3 target = new Vec3(origin.x + driftX + x, origin.y + y, origin.z + driftZ + z);
             // Move toward the target rather than snapping, so the once-a-second wind step and any jitter stay smooth.
-            Vec3 cur = p.position;
-            Vec3 next = cur.add(target.subtract(cur).scale(0.12));
-            p.position = next;
+            Vec3 cur = p.position == null ? origin : p.position;
+            p.position = cur.add(target.subtract(cur).scale(ease));
             p.velocity = Vec3.ZERO;
         }
     }
@@ -169,9 +193,7 @@ public final class MushroomCloud {
      * seconds of wildfire smoke would wipe the cloud out. Every tick our puffs are moved to the back of its list (so
      * the wildfire smoke is what gets retired), and any puff that still died (or was never spawned) is replaced.
      */
-    private static void keepAlive(ClientLevel level) {
-        WeatherHandlerClient weather = weatherRef;
-        if (weather == null) return;
+    private void keepAlive() {
         try {
             List<VolumetricSmokeParticle> list = weather.smokeParticles;
             if (list == null) return;
@@ -203,7 +225,7 @@ public final class MushroomCloud {
         return t < 0 ? 0 : t > 1 ? 1 : 1 - (1 - t) * (1 - t) * (1 - t);
     }
 
-    public static void clear() {
+    private void kill() {
         for (Puff puff : puffs) {
             try {
                 if (puff.p != null && !puff.p.dead) puff.p.startDeath();
@@ -211,11 +233,10 @@ public final class MushroomCloud {
             }
         }
         puffs.clear();
-        origin = null;
-        weatherRef = null;
-        detonationId = -1;
-        fadeStart = -1;
     }
 
-    private MushroomCloud() {}
+    public static void clear() {
+        for (MushroomCloud c : CLOUDS) c.kill();
+        CLOUDS.clear();
+    }
 }

@@ -138,6 +138,7 @@ public class FalloutLayerBlock extends Block {
     protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
         if (level.isClientSide || !ASConfig.FALLOUT_RADIATION.get()) return;
         if (entity instanceof LivingEntity living && level.getGameTime() % 20 == 0) {
+            if (living instanceof net.minecraft.world.entity.player.Player p && (p.isCreative() || p.isSpectator())) return;
             if (com.atomicsky.item.RadiationSuitItem.isProtected(living)) return;
             int amp = state.getValue(LAYERS) >= 4 ? 1 : 0;
             living.addEffect(new MobEffectInstance(AtomicSky.RADIATION, 200, amp, false, true, true));

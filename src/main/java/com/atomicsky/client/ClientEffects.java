@@ -113,10 +113,9 @@ public final class ClientEffects {
         }
 
         // Shock front passing the camera: shake and a gust.
-        long now = ClientState.estimatedServerTick();
         for (DetonationSyncPayload.Entry e : ClientState.entries) {
             if (e.shockDone()) continue;
-            double radius = e.shockRadius() + (now - ClientState.lastSyncServerTick) * com.atomicsky.ASConfig.SHOCKWAVE_SPEED.get() / 20.0;
+            double radius = ClientState.shockRadiusNow(e);
             double d = Math.hypot(x - e.center().x, z - e.center().z);
             if (Math.abs(d - radius) < 8 && shockPassedId != e.id()) {
                 shockPassedId = e.id();
@@ -157,7 +156,7 @@ public final class ClientEffects {
         // Shock front: a ring of dust and debris racing outward along the ground, drawn where it is near the camera.
         for (DetonationSyncPayload.Entry e : ClientState.entries) {
             if (e.shockDone()) continue;
-            double radius = e.shockRadius() + (now - ClientState.lastSyncServerTick) * com.atomicsky.ASConfig.SHOCKWAVE_SPEED.get() / 20.0;
+            double radius = ClientState.shockRadiusNow(e);
             if (radius > e.shockRange()) continue;
             double strength = Math.max(0.15, 1 - radius / e.shockRange());
             int spawned = 0, tries = 0;

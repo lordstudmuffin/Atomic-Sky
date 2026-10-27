@@ -6,9 +6,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -16,15 +13,13 @@ import net.minecraft.world.level.block.FarmBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
-
-import java.util.List;
 
 /**
- * The heat pulse. A sweep of random surface columns inside the heat radius, weighted toward the centre and fading
- * with time: grass bakes to dirt, farmland and the weather mod's soil moisture dry out, shallow water boils off,
- * anything flammable catches the weather mod's wildfire, and anything alive out in the open burns.
+ * The heat pulse. A deterministic sweep bakes every column of the dead zone once as the front passes it, then a
+ * sweep of random surface columns inside the heat radius, weighted toward the centre and fading with time, keeps
+ * cooking: grass bakes to dirt, farmland and the weather mod's soil moisture dry out, shallow water boils off, and
+ * anything flammable catches the weather mod's wildfire. The heat works on terrain only; it never hurts anything
+ * alive. Dead-zone chunks that were not loaded while the sweep passed are baked when they next load.
  */
 final class HeatPulse {
     private static final int COLUMNS_PER_TICK = 110;
@@ -57,10 +52,11 @@ final class HeatPulse {
                     if ((int) Math.sqrt(dx * dx + dz * dz) != s) continue;
                     int x = cx + dx, z = cz + dz;
                     if (!level.hasChunk(x >> 4, z >> 4)) continue;
+                    d.touchedChunks.add(ChunkPos.asLong(x >> 4, z >> 4));
                     int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) - 1;
                     if (top < level.getMinBuildHeight()) continue;
                     pos.set(x, top, z);
-                    cookColumn(level, d, pos, level.getBlockState(pos), 1.0, rand);
+                    cookColumn(level, d, pos, level.getBlockState(pos), 1.0, rand, true);
                     budget--;
                 }
             }
@@ -80,7 +76,7 @@ final class HeatPulse {
             if (top < level.getMinBuildHeight()) continue;
             pos.set(x, top, z);
             BlockState state = level.getBlockState(pos);
-            cookColumn(level, d, pos, state, strength, rand);
+            cookColumn(level, d, pos, state, strength, rand, true);
         }
 
         // Dry the soil in the weather mod's moisture system, one chunk ring per second.
@@ -93,7 +89,35 @@ final class HeatPulse {
         // No heat damage to anything alive: once the blast itself is over, radiation is the only danger of the area.
     }
 
-    private static void cookColumn(ServerLevel level, Detonation d, BlockPos.MutableBlockPos pos, BlockState top, double strength, RandomSource rand) {
+    /**
+     * A dead-zone chunk that loads after the sweep went past it: bake every column of it that lies inside the dead
+     * zone. Fires are only started while the pulse is still running; a chunk first visited days later is simply dead.
+     * Returns false when the sweep has not reached this chunk yet (it will, now that the chunk is loaded).
+     */
+    static boolean catchUpChunk(ServerLevel level, Detonation d, ChunkPos chunk) {
+        double deadR = d.deadRadius();
+        int cx = (int) Math.floor(d.center.x), cz = (int) Math.floor(d.center.z);
+        RandomSource rand = level.random;
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        boolean fires = !d.heatDone;
+        boolean complete = true;
+        for (int x = chunk.getMinBlockX(); x <= chunk.getMaxBlockX(); x++) {
+            for (int z = chunk.getMinBlockZ(); z <= chunk.getMaxBlockZ(); z++) {
+                int dx = x - cx, dz = z - cz;
+                int s = (int) Math.sqrt(dx * dx + dz * dz);
+                if (s > deadR || s < d.craterR - 3) continue;
+                if (s > d.heatRing) { complete = false; continue; }
+                int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) - 1;
+                if (top < level.getMinBuildHeight()) continue;
+                pos.set(x, top, z);
+                cookColumn(level, d, pos, level.getBlockState(pos), 1.0, rand, fires);
+            }
+        }
+        return complete;
+    }
+
+    private static void cookColumn(ServerLevel level, Detonation d, BlockPos.MutableBlockPos pos, BlockState top, double strength,
+                                   RandomSource rand, boolean fires) {
         if (strength <= 0.01) return;
         BlockPos above = pos.above();
         boolean dries = ASConfig.HEAT_DRIES_SOIL.get();
@@ -120,7 +144,7 @@ final class HeatPulse {
                 || top.is(Blocks.FERN) || top.is(Blocks.LARGE_FERN) || top.is(BlockTags.CROPS) || top.is(Blocks.DEAD_BUSH)
                 || top.is(Blocks.SUGAR_CANE) || top.is(Blocks.BAMBOO) || top.is(Blocks.VINE) || top.is(Blocks.LILY_PAD)) {
             if (rand.nextDouble() < strength * 1.5) {
-                if (strength > 0.3 && rand.nextDouble() < ASConfig.HEAT_FIRE_CHANCE.get()) {
+                if (fires && strength > 0.3 && rand.nextDouble() < ASConfig.HEAT_FIRE_CHANCE.get()) {
                     level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
                     WeatherBridge.ignite(level, pos.immutable(), (int) Math.ceil(strength * 10));
                 } else {
@@ -165,6 +189,7 @@ final class HeatPulse {
             }
             if (top.is(BlockTags.LEAVES) || top.isAir()) return;
         }
+        if (!fires) return;
 
         // Flammable surfaces (leaves, logs, planks, wool, hay...): the weather mod's wildfire.
         boolean flammable = top.isFlammable(level, pos, net.minecraft.core.Direction.UP) || top.is(BlockTags.LEAVES) || top.is(BlockTags.LOGS)

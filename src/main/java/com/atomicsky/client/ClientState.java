@@ -16,6 +16,12 @@ public final class ClientState {
     public static long lastSyncServerTick;
     public static long lastSyncClientTick;
 
+    // The server's settings, as sent with every sync (a client's own config file is never used for these).
+    public static volatile double shockSpeed = 60.0;
+    public static volatile double windMph = 500.0;
+    public static volatile double winterDropC = 0.0;
+    public static volatile int cloudLifetime = 30000;
+
     // Flash
     public static float flashPeak;
     public static int flashTicks;
@@ -35,9 +41,22 @@ public final class ClientState {
     public static void onSync(DetonationSyncPayload p) {
         entries = p.entries();
         lastSyncServerTick = p.serverTick();
+        shockSpeed = p.shockSpeed();
+        windMph = p.windMph();
+        cloudLifetime = p.cloudLifetime();
         Minecraft mc = Minecraft.getInstance();
         lastSyncClientTick = mc.level == null ? 0 : mc.level.getGameTime();
         publishFronts();
+        // Clouds for detonations this client never saw flash: it logged in, changed dimension or was too far away.
+        if (ASClientConfig.MUSHROOM_CLOUD.get()) {
+            for (DetonationSyncPayload.Entry e : entries) {
+                if (e.falloutDone() || MushroomCloud.has(e.id())) continue;
+                long age = p.serverTick() - e.startTick();
+                if (age >= 0 && age < cloudLifetime) MushroomCloud.startAged(e.center(), e.yield(), e.id(), (int) age);
+            }
+        }
+        // Clouds whose detonation the server has forgotten thin out; the cloud tick handles that from the entries.
+        winterDropC = p.winterDropC() * winterFactor();
     }
 
     /** Estimated current server tick: the last synced tick plus the client ticks since. */
@@ -47,14 +66,18 @@ public final class ClientState {
         return lastSyncServerTick + (mc.level.getGameTime() - lastSyncClientTick);
     }
 
+    /** Where a shock front is right now, extrapolated from the last sync at the server's shock speed. */
+    public static double shockRadiusNow(DetonationSyncPayload.Entry e) {
+        return e.shockRadius() + (estimatedServerTick() - lastSyncServerTick) * shockSpeed / 20.0;
+    }
+
     public static void publishFronts() {
         List<ShockwaveField.Front> fronts = new ArrayList<>();
-        long now = estimatedServerTick();
         for (DetonationSyncPayload.Entry e : entries) {
             if (e.shockDone()) continue;
-            double radius = e.shockRadius() + (now - lastSyncServerTick) * com.atomicsky.ASConfig.SHOCKWAVE_SPEED.get() / 20.0;
+            double radius = shockRadiusNow(e);
             if (radius - 8 > e.shockRange()) continue;
-            fronts.add(new ShockwaveField.Front(e.center(), radius, 8.0, com.atomicsky.ASConfig.SHOCKWAVE_WIND_MPH.get(), e.yield(), e.shockRange()));
+            fronts.add(new ShockwaveField.Front(e.center(), radius, 8.0, windMph, e.yield(), e.shockRange()));
         }
         ShockwaveField.setClientFronts(fronts);
     }
@@ -101,10 +124,16 @@ public final class ClientState {
         return f;
     }
 
+    /** Nuclear-winter temperature drop in degrees C for this client's level, as the server computed it. */
+    public static double winterDropC() {
+        return winterDropC;
+    }
+
     public static void reset() {
         entries = List.of();
         flashTicks = 0;
         flashPeak = 0;
+        winterDropC = 0;
         ShockwaveField.setClientFronts(List.of());
         MushroomCloud.clear();
     }

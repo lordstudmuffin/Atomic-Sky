@@ -60,7 +60,6 @@ public final class ASCommands {
         int n = m.all().size();
         m.clearAll();
         m.sync(source.getLevel());
-        com.atomicsky.weather.ShockwaveField.setServerFronts(java.util.List.of());
         source.sendSuccess(() -> Component.translatable("command.atomicsky.cleared", n), true);
         return n;
     }

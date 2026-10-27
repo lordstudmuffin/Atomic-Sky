@@ -52,6 +52,7 @@ final class Shockwave {
             // The band passes an entity in BAND*2/speed ticks; spread the total impulse over that time.
             double perTick = peak * falloff * tail * speedPerTick / (BAND * 2.0);
             if (perTick < 0.002) continue;
+            // A roof (a house, a cave, a bunker) muffles the front: a third of the push, a third of the damage.
             boolean sheltered = !level.canSeeSky(e.blockPosition());
             if (sheltered) perTick *= 0.3;
             double inv = 1.0 / dist;
@@ -59,7 +60,7 @@ final class Shockwave {
             e.push(push.x, push.y, push.z);
             e.hurtMarked = true;
             if (e instanceof LivingEntity living && falloff > 0.2 && now % 5 == 0) {
-                float dmg = (float) (falloff * tail * 4.0);
+                float dmg = (float) (falloff * tail * 4.0 * (sheltered ? 0.3 : 1.0));
                 if (dmg >= 0.5F) living.hurt(level.damageSources().explosion(null, null), dmg);
             }
         }
@@ -77,7 +78,7 @@ final class Shockwave {
             if (d.shockDone) continue;
             fronts.add(new ShockwaveField.Front(d.center, d.shockRadius(now), BAND, ASConfig.SHOCKWAVE_WIND_MPH.get(), d.yield, d.shockRange()));
         }
-        ShockwaveField.setServerFronts(fronts);
+        ShockwaveField.setServerFronts(level.dimension(), fronts);
     }
 
     private static void shatter(ServerLevel level, Detonation d, double radius) {
