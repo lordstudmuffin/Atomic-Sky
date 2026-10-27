@@ -18,7 +18,8 @@ Drop `atomicsky-1.0.5.jar` into `mods/` next to the weather mod. Config files ap
 | Radiation Suit (hood, jacket, trousers, boots) | yellow wool in the usual armour shapes, glass pane visor in the hood, iron ingot in the jacket and boots | the full set keeps Radiation Sickness off in fallout |
 
 Arm the bomb with flint and steel, a fire charge or a redstone signal. It flashes red for `fuseSeconds` (default 10);
-sneak-click it to disarm. Breaking an armed bomb also disarms it.
+sneak-click it with both hands empty to disarm (the game skips block interactions when you sneak holding an item).
+Breaking an armed bomb also disarms it.
 
 ## The sequence
 1. **Flash.** Everyone within `flashRange` sees a white-out that fades over a few seconds (stronger when looking at it).

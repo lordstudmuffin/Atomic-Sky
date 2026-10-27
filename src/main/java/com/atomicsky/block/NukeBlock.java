@@ -37,7 +37,8 @@ import java.util.List;
 
 /**
  * The bomb. Arm it with flint and steel, a fire charge or a redstone signal; it counts down (config fuseSeconds)
- * with a rising beep, then detonates. Sneak-right-click with an empty hand to disarm. Explosions do not set it off,
+ * with a rising beep, then detonates. Sneak-right-click with both hands empty to disarm (vanilla skips block
+ * interactions for a sneaking player who holds anything). Explosions do not set it off,
  * so a stray creeper cannot ruin a base; it must be armed on purpose.
  */
 public class NukeBlock extends BaseEntityBlock {

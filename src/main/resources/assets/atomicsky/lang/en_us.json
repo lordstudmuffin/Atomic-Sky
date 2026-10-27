@@ -7,7 +7,7 @@
  "tooltip.atomicsky.nuke.1": "§eArm with flint and steel, a fire charge or redstone.",
  "tooltip.atomicsky.nuke.2": "§cFlash, heat, shockwave, fallout and a nuclear winter. There is no undo.",
  "tooltip.atomicsky.geiger": "§7Right-click to read fallout and winter levels where you stand.",
- "message.atomicsky.armed": "§c§lBOMB ARMED §r§c- detonation in %s seconds. Sneak-click it to disarm.",
+ "message.atomicsky.armed": "§c§lBOMB ARMED §r§c- detonation in %s seconds. Sneak-click it with empty hands to disarm.",
  "message.atomicsky.disarmed": "§aBomb disarmed.",
  "message.atomicsky.how_to_arm": "§7Use flint and steel, a fire charge or a redstone signal to arm the bomb.",
  "message.atomicsky.geiger": "§7Geiger counter: fallout %s, nuclear winter %s",
