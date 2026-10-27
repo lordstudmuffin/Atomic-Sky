@@ -27,12 +27,19 @@ import net.neoforged.neoforge.event.level.LevelEvent;
 /** Flash, fallout ash, darkened sky, heat shimmer embers, camera shake and sound: the client half of a detonation. */
 public final class ClientEffects {
     private static final RandomSource RAND = RandomSource.create();
-    private static int boomDelay = -1;
-    private static float boomVolume;
-    private static Vec3 boomAt;
+    /** Booms still on their way to the camera (two bombs close together each get theirs). */
+    private static final java.util.List<Boom> BOOMS = new java.util.ArrayList<>();
     private static float shake;
     private static float shakeYaw, shakePitch;
-    private static int shockPassedId = -1;
+    /** Shock fronts that have already passed the camera, so each one shakes and gusts exactly once. */
+    private static final java.util.Set<Integer> SHOCK_PASSED = new java.util.HashSet<>();
+
+    private static final class Boom {
+        int delay;
+        final float volume;
+        final Vec3 at;
+        Boom(int delay, float volume, Vec3 at) { this.delay = delay; this.volume = volume; this.at = at; }
+    }
 
     public static void onFlash(FlashPayload p) {
         Minecraft mc = Minecraft.getInstance();
@@ -43,10 +50,9 @@ public final class ClientEffects {
         if (dist > p.range() * 1.5) return;
 
         // Sound: thunder-like boom delayed by distance (about 17 blocks per tick), then a long rumble.
-        boomDelay = (int) (dist / 17.0);
-        boomVolume = (float) Mth.clamp(1.5 - dist / p.range(), 0.3, 1.5);
-        boomAt = p.center();
-        if (boomDelay == 0) playBoom();
+        Boom boom = new Boom((int) (dist / 17.0), (float) Mth.clamp(1.5 - dist / p.range(), 0.3, 1.5), p.center());
+        if (boom.delay <= 0) playBoom(boom);
+        else BOOMS.add(boom);
 
         if (!ASClientConfig.FLASH.get()) return;
         double base = Mth.clamp(1.0 - dist / p.range(), 0.0, 1.0);
@@ -66,17 +72,23 @@ public final class ClientEffects {
         ClientState.flashTicks = ClientState.flashDuration;
     }
 
-    private static void playBoom() {
+    private static void playBoom(Boom b) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || boomAt == null) return;
-        mc.getSoundManager().play(new SimpleSoundInstance(SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, boomVolume * 3.0F, 0.35F,
-                RAND, boomAt.x, boomAt.y, boomAt.z));
-        mc.getSoundManager().play(new SimpleSoundInstance(SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, boomVolume * 4.0F, 0.5F,
-                RAND, boomAt.x, boomAt.y, boomAt.z));
-        mc.getSoundManager().play(new SimpleSoundInstance(SoundEvents.WITHER_SPAWN, SoundSource.WEATHER, boomVolume * 1.2F, 0.3F,
-                RAND, boomAt.x, boomAt.y, boomAt.z));
-        shake = Math.max(shake, boomVolume * 0.8F);
-        boomDelay = -1;
+        if (mc.level == null) return;
+        mc.getSoundManager().play(new SimpleSoundInstance(SoundEvents.GENERIC_EXPLODE.value(), SoundSource.WEATHER, b.volume * 3.0F, 0.35F,
+                RAND, b.at.x, b.at.y, b.at.z));
+        mc.getSoundManager().play(new SimpleSoundInstance(SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, b.volume * 4.0F, 0.5F,
+                RAND, b.at.x, b.at.y, b.at.z));
+        mc.getSoundManager().play(new SimpleSoundInstance(SoundEvents.WITHER_SPAWN, SoundSource.WEATHER, b.volume * 1.2F, 0.3F,
+                RAND, b.at.x, b.at.y, b.at.z));
+        shake = Math.max(shake, b.volume * 0.8F);
+    }
+
+    /** A new level (login, dimension change, disconnect): nothing from the last one is still on its way. */
+    static void reset() {
+        BOOMS.clear();
+        SHOCK_PASSED.clear();
+        shake = 0;
     }
 
     public static void onClientTick(ClientTickEvent.Post event) {
@@ -84,7 +96,16 @@ public final class ClientEffects {
         ClientLevel level = mc.level;
         if (level == null || mc.isPaused()) return;
         if (ClientState.flashTicks > 0) ClientState.flashTicks--;
-        if (boomDelay > 0 && --boomDelay == 0) playBoom();
+        if (!BOOMS.isEmpty()) {
+            java.util.Iterator<Boom> booms = BOOMS.iterator();
+            while (booms.hasNext()) {
+                Boom b = booms.next();
+                if (--b.delay <= 0) {
+                    playBoom(b);
+                    booms.remove();
+                }
+            }
+        }
         shake *= 0.86F;
         if (shake > 0.01F) {
             shakeYaw = (RAND.nextFloat() - 0.5F) * 2.0F * shake * 3.0F;
@@ -117,8 +138,7 @@ public final class ClientEffects {
             if (e.shockDone()) continue;
             double radius = ClientState.shockRadiusNow(e);
             double d = Math.hypot(x - e.center().x, z - e.center().z);
-            if (Math.abs(d - radius) < 8 && shockPassedId != e.id()) {
-                shockPassedId = e.id();
+            if (Math.abs(d - radius) < 8 && SHOCK_PASSED.add(e.id())) {
                 double strength = Math.min(1.0, e.yield() / Math.max(d, e.yield())) * Math.max(0, 1 - radius / e.shockRange());
                 if (ASClientConfig.CAMERA_SHAKE.get()) shake = Math.max(shake, (float) (0.5 + strength * 2.0));
                 mc.getSoundManager().play(new SimpleSoundInstance(SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.WEATHER,

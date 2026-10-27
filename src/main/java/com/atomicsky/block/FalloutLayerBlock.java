@@ -121,12 +121,12 @@ public class FalloutLayerBlock extends Block {
         return super.getStateForPlacement(context);
     }
 
-    /** Fallout crumbles away: expected lifetime is roughly decayDays in-game days per layer stack. */
+    /** Fallout crumbles away: a stack of maxLayers lasts about decayDays in-game days, thinner patches go sooner. */
     @Override
     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
         // A block gets a random tick about every 68 s at the default speed; 24000 ticks per day -> ~17.6 random ticks per day.
         double ticksPerDay = 17.6;
-        double chance = 1.0 / Math.max(1.0, ticksPerDay * ASConfig.FALLOUT_DECAY_DAYS.get() / 3.0);
+        double chance = 1.0 / Math.max(1.0, ticksPerDay * ASConfig.FALLOUT_DECAY_DAYS.get() / ASConfig.FALLOUT_MAX_LAYERS.get());
         if (random.nextDouble() < chance) {
             int layers = state.getValue(LAYERS);
             if (layers <= 1) level.removeBlock(pos, false);

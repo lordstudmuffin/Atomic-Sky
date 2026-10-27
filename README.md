@@ -87,7 +87,14 @@ mushroom cloud scale with `particleDensity`.
   blows in another; the server's shockwave speed, blast wind and winter temperature drop are sent to clients, so a
   client's own config file can no longer disagree with the server's; a detonation that ends is sent to clients at once
   instead of at the next relog; creative and spectator players no longer catch Radiation Sickness from fallout on the
-  ground; an unused particle definition that logged a warning on every resource reload is gone. Saves from 1.0.4 load
+  ground; an unused particle definition that logged a warning on every resource reload is gone; Radiation Sickness now
+  actually hurts while you stay in the fallout (the effect is re-applied every second, and its damage schedule used to
+  run on the remaining duration, which the refresh kept from ever reaching a tick: half a heart every 3 seconds at
+  level I, every 1.5 seconds at level II, and only level II can kill); a plume thins all the way out instead of
+  cutting off at 14% a minute after the fallout ends; a stack of `maxLayers` fallout lasts `decayDays` (a full stack
+  used to last twice that); each bomb's boom reaches you in its own time and each shock front shakes the camera once;
+  three or more mushroom clouds share the weather mod's smoke budget instead of fighting over it; the crater dig
+  resumes mid-ring, so a tick never exceeds its block budget on the big middle rings. Saves from 1.0.4 load
   unchanged; the network protocol is new, so server and clients must all run 1.0.5.
 - 1.0.4: the heat no longer damages or ignites players and mobs (radiation is the only lingering danger); the mushroom
   cloud stays up until the fallout ends.

@@ -28,13 +28,13 @@ final class FalloutPlume {
 
     static void tick(ServerLevel level, Detonation d, long now) {
         if (now < d.falloutStart) return;
-        if (now >= d.falloutEnd + 1200) {           // a minute of thinning after the end
+        double total = d.falloutEnd - d.falloutStart;
+        double t = (now - d.falloutStart) / total;    // 0..1 over the fallout window, 1..1.1 while thinning
+        if (t >= 1.1) {                               // thinned all the way out (2 minutes at the default 20)
             d.falloutDone = true;
             d.plumeIntensity = 0;
             return;
         }
-        double total = d.falloutEnd - d.falloutStart;
-        double t = (now - d.falloutStart) / total;    // 0..1 over the fallout window, >1 while thinning
         double maxR = d.falloutMaxRadius();
         d.plumeRadius = Math.min(maxR, d.yield * 1.5 + (maxR - d.yield * 1.5) * Math.min(1.0, t / 0.25));
         if (t < 0.1) d.plumeIntensity = t / 0.1;

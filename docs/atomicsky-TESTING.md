@@ -69,6 +69,10 @@ Watch the F3 FPS counter during the mushroom cloud and fallout. If it drops too 
 - **Far chunks.** Set render distance to 6, detonate, then walk 200 blocks out in any direction after a minute. The
   dead zone should continue without a notch where the chunks had not been loaded.
 - **Nether.** Detonate in the Overworld, go to the Nether while the shockwave is still running: no blast wind there.
+- **Radiation drain.** Stand in the open under the plume (survival, no suit) and stay there: you should lose half a
+  heart every 3 seconds down to the last half-heart at level I, and every 1.5 seconds with no floor at level II (deep
+  in the plume, or on 4+ layers of fallout). Before this fix nothing happened while you stayed put.
+- **Plume end.** Watch the sky after the 20 minutes: it should clear gradually over about two minutes, not snap.
 
 ## If something breaks
 Send `logs/latest.log` (and `crash-reports/` if any). Likely suspects, in order: a mixin that did not apply (then

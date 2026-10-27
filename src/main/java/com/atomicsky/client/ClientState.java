@@ -136,6 +136,7 @@ public final class ClientState {
         winterDropC = 0;
         ShockwaveField.setClientFronts(List.of());
         MushroomCloud.clear();
+        ClientEffects.reset();
     }
 
     private ClientState() {}

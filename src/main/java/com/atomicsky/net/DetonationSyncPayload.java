@@ -83,8 +83,8 @@ public record DetonationSyncPayload(long serverTick, double shockSpeed, double w
                     d.windX, d.windZ, d.heatRadius(), d.deadRadius(), d.heatIntensity(now), d.shockRadius(now), d.shockRange(), d.shockDone, d.falloutDone,
                     d.winterFactor(day)));
         }
-        // The cloud stands for the fallout delay, the fallout itself and the server's minute of thinning, plus a margin.
-        int cloudLifetime = ASConfig.FALLOUT_DELAY_SECONDS.get() * 20 + ASConfig.FALLOUT_MINUTES.get() * 1200 + 2400;
+        // The cloud stands for the fallout delay, the fallout itself and the tenth of thinning the plume adds after it.
+        int cloudLifetime = ASConfig.FALLOUT_DELAY_SECONDS.get() * 20 + ASConfig.FALLOUT_MINUTES.get() * 1320;
         double winterDrop = ASConfig.WINTER_ENABLED.get() ? ASConfig.WINTER_TEMPERATURE_DROP.get() : 0;
         return new DetonationSyncPayload(now, ASConfig.SHOCKWAVE_SPEED.get(), ASConfig.SHOCKWAVE_WIND_MPH.get(), winterDrop, cloudLifetime, list);
     }

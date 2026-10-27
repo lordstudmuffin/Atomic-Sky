@@ -22,8 +22,13 @@ public final class MushroomCloud {
     private static final RandomSource RAND = RandomSource.create();
     private static final List<MushroomCloud> CLOUDS = new ArrayList<>();
     private static final int FADE_TICKS = 1200;    // a minute of thinning once the fallout has stopped
-    /** The weather mod keeps at most 55 puffs; a second cloud gets a smaller set so both fit under that cap. */
-    private static final int[] FULL = {3, 8, 18}, SMALL = {2, 5, 11};
+    /**
+     * The weather mod keeps at most 55 puffs and retires the oldest past that, so every cloud standing at once has to
+     * fit under the cap together: the first cloud gets the full set, later ones are scaled down to what is left, and
+     * once fewer than six puffs are free a new detonation gets no cloud rather than tearing holes in the others.
+     */
+    private static final int PUFF_CAP = 55;
+    private static final int[] FULL = {3, 8, 18};
 
     private final List<Puff> puffs = new ArrayList<>();
     private final int detonationId;
@@ -89,8 +94,10 @@ public final class MushroomCloud {
         }
         if (weather == null) return;
         int lifetime = Math.max(600, ClientState.cloudLifetime - age);
+        int[] counts = countsFor(puffsInUse());
+        if (counts == null) return;
         try {
-            MushroomCloud cloud = new MushroomCloud(weather, center, yield, id, lifetime, CLOUDS.isEmpty() ? FULL : SMALL);
+            MushroomCloud cloud = new MushroomCloud(weather, center, yield, id, lifetime, counts);
             cloud.age = Math.max(0, age);
             CLOUDS.add(cloud);
             // Puffs ease toward their targets, so an aged cloud needs a few ticks to take shape; snap it there.
@@ -98,6 +105,24 @@ public final class MushroomCloud {
         } catch (Throwable t) {
             // The weather mod refused to spawn smoke (no renderer yet, or a shader problem): no cloud this time.
         }
+    }
+
+    private static int puffsInUse() {
+        int n = 0;
+        for (MushroomCloud c : CLOUDS) n += c.puffs.size();
+        return n;
+    }
+
+    /** Puff counts (fireball, stem, cap) that fit in what the cap leaves free, or null when that is fewer than six. */
+    private static int[] countsFor(int inUse) {
+        int free = PUFF_CAP - inUse;
+        int full = FULL[0] + FULL[1] + FULL[2];
+        if (free >= full) return FULL;
+        if (free < 6) return null;
+        double scale = (double) free / full;
+        int[] c = new int[]{Math.max(1, (int) (FULL[0] * scale)), Math.max(1, (int) (FULL[1] * scale)), Math.max(2, (int) (FULL[2] * scale))};
+        while (c[0] + c[1] + c[2] > free) c[2]--;
+        return c;
     }
 
     public static boolean has(int id) {
