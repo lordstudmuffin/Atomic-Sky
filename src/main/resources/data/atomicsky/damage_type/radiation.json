@@ -2,5 +2,5 @@
  "message_id": "atomicsky.radiation",
  "exhaustion": 0.0,
  "scaling": "never",
- "effects": "burning"
+ "effects": "hurt"
 }

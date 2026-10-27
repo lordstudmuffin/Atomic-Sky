@@ -73,7 +73,7 @@ sneak-click it to disarm. Breaking an armed bomb also disarms it.
 `atomicsky-client.toml`: `flash`, `flashStrength`, `mushroomCloud`, `particleDensity`, `darkSky`, `cameraShake`.
 
 ## Performance
-Block work is budgeted per tick (crater 5000 blocks/tick, heat and fallout a few hundred columns/tick), entity pushes
+Block work is budgeted per tick (crater 6000 blocks/tick, heat and fallout a few hundred columns/tick), entity pushes
 only scan the shock ring, and all client visuals are plain particles plus one fog tweak. Fallout particles and the
 mushroom cloud scale with `particleDensity`.
 

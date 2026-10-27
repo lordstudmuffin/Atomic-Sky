@@ -15,8 +15,6 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
@@ -73,8 +71,8 @@ public class DetonationManager extends SavedData {
         for (ServerPlayer p : level.players()) {
             if (p.position().distanceTo(center) <= range * 1.5) PacketDistributor.sendToPlayer(p, flash);
         }
-        level.playSound(null, BlockPos.containing(center), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 16.0F, 0.5F);
-        level.playSound(null, BlockPos.containing(center), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 16.0F, 0.4F);
+        // No server-side sound: every client plays its own boom, delayed by its distance (ClientEffects), so the sound
+        // arrives after the flash the way it should, and nobody hears it twice.
         // Immediate lethal zone so nothing standing on the bomb survives the first tick.
         Crater.killInside(level, d);
         WeatherBridge.onDetonation(level, d);

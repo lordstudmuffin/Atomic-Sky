@@ -43,7 +43,7 @@ public final class ASConfig {
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
         b.comment("The bomb itself.").push("blast");
-        BLAST_RADIUS = b.comment("Yield in blocks: the kill zone, and every other distance scales from this (heat x5, shockwave x16, fallout x8). 32 = heat to 160 blocks, shockwave to 512, fallout plume 256 across.")
+        BLAST_RADIUS = b.comment("Yield in blocks: the fireball, and the shockwave (x16) and fallout plume (x8) scale from it; 32 = shockwave to 512 blocks, plume radius 256. The crater and dead zone have their own sizes below.")
                 .defineInRange("blastRadius", 32, 4, 128);
         CRATER_RADIUS = b.comment("Radius in blocks of the crater bowl (at the default yield; a bigger or smaller yield scales it along). 120 swallows a whole village and its fields.")
                 .defineInRange("craterRadius", 120, 4, 400);
@@ -75,7 +75,7 @@ public final class ASConfig {
         b.pop();
 
         b.comment("Shockwave: an expanding ring of wind fed into the weather mod's wind engine; pushes players, mobs and items and weakens with distance.").push("shockwave");
-        SHOCKWAVE_RANGE_FACTOR = b.comment("How far the shockwave travels, as a multiple of blastRadius (24 x 16 = 384 blocks).")
+        SHOCKWAVE_RANGE_FACTOR = b.comment("How far the shockwave travels, as a multiple of blastRadius (32 x 16 = 512 blocks).")
                 .defineInRange("rangeFactor", 16.0, 2.0, 60.0);
         SHOCKWAVE_SPEED = b.comment("Speed of the shock front in blocks per second.")
                 .defineInRange("speedBlocksPerSecond", 60.0, 5.0, 400.0);
@@ -92,7 +92,7 @@ public final class ASConfig {
                 .defineInRange("delaySeconds", 25, 0, 600);
         FALLOUT_MINUTES = b.comment("How long fallout keeps falling (real minutes).")
                 .defineInRange("durationMinutes", 20, 1, 600);
-        FALLOUT_RADIUS_FACTOR = b.comment("Full-grown plume radius as a multiple of blastRadius (24 x 8 = 192 blocks).")
+        FALLOUT_RADIUS_FACTOR = b.comment("Full-grown plume radius as a multiple of blastRadius (32 x 8 = 256 blocks).")
                 .defineInRange("radiusFactor", 8.0, 1.0, 40.0);
         FALLOUT_MAX_LAYERS = b.comment("Deepest fallout layer that can build up (1-8, like snow).")
                 .defineInRange("maxLayers", 6, 1, 8);
