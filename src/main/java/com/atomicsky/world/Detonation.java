@@ -18,6 +18,7 @@ public final class Detonation {
 
     // Crater carving progress (shell by shell, a few thousand blocks per tick).
     public int craterShell;
+    public int craterDx = Integer.MIN_VALUE;   // where the current ring was left part-way (MIN_VALUE = start of ring)
     public int craterR;           // crater bowl radius in blocks
     public int craterDepth;       // crater depth at the centre
     public boolean craterDone;
@@ -171,6 +172,7 @@ public final class Detonation {
         if (armedBy != null) t.putUUID("ArmedBy", armedBy);
         t.putLong("Seed", seed);
         t.putInt("CraterShell", craterShell);
+        t.putInt("CraterDx", craterDx);
         t.putInt("CraterR", craterR);
         t.putInt("CraterDepth", craterDepth);
         t.putBoolean("CraterDone", craterDone);
@@ -205,6 +207,7 @@ public final class Detonation {
         d.armedBy = t.hasUUID("ArmedBy") ? t.getUUID("ArmedBy") : null;
         d.seed = t.getLong("Seed");
         d.craterShell = t.getInt("CraterShell");
+        d.craterDx = t.contains("CraterDx") ? t.getInt("CraterDx") : Integer.MIN_VALUE;
         d.craterR = t.contains("CraterR") ? t.getInt("CraterR") : d.yield;
         d.craterDepth = t.contains("CraterDepth") ? t.getInt("CraterDepth") : d.yield;
         d.craterDone = t.getBoolean("CraterDone");

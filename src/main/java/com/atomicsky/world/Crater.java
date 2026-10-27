@@ -65,11 +65,14 @@ final class Crater {
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         int cx = (int) Math.floor(d.center.x), cz = (int) Math.floor(d.center.z);
         // Ring s holds every column whose floor(distance) == s; rings are dug from the centre outward.
+        // A ring can hold more blocks than one tick's budget (the mid rings of a 120-radius bowl run to about 15000),
+        // so a ring is resumed where it stopped rather than finished in one go; that keeps every tick about the same.
         while (d.craterShell <= R && budget > 0) {
             int s = d.craterShell;
             boolean rim = s >= R - 2;
             int flags = rim ? Block.UPDATE_ALL : (Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
-            for (int dx = -s; dx <= s; dx++) {
+            int dx = Math.max(-s, d.craterDx);
+            for (; dx <= s && budget > 0; dx++) {
                 for (int dz = -s; dz <= s; dz++) {
                     if ((int) Math.sqrt(dx * dx + dz * dz) != s) continue;
                     int x = cx + dx, z = cz + dz;
@@ -78,7 +81,12 @@ final class Crater {
                     budget -= digColumn(level, d, pos, x, z, rim, flags);
                 }
             }
-            d.craterShell++;
+            if (dx > s) {
+                d.craterShell++;
+                d.craterDx = Integer.MIN_VALUE;
+            } else {
+                d.craterDx = dx;   // out of budget part-way round the ring: carry on here next tick
+            }
         }
         if (d.craterShell > R) d.craterDone = true;
     }
